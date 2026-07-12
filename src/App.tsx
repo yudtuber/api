@@ -370,7 +370,21 @@ export default function App() {
         setIsAuthenticated(true);
       } else {
         const errData = await res.json().catch(() => ({ error: 'Password salah' }));
-        setLoginError(errData.error || 'Password yang Anda masukkan salah.');
+        const diag = errData.diagnostics || {};
+        let message = `Password salah. `;
+        if (diag.envIsCustom) {
+          message += `(Status: ADMIN_PASSWORD kustom TERDETEKSI di server. `;
+        } else {
+          message += `(Status: ADMIN_PASSWORD kustom BELUM terdeteksi di server (server masih memakai bawaan "admin123"). `;
+        }
+        
+        message += `Panjang input Anda: ${diag.receivedLength || 0} karakter. Panjang password server: ${diag.expectedLength || 0} karakter.`;
+        
+        if (!diag.hasBody) {
+          message += ` ERROR: Body kosong!`;
+        }
+        message += `)`;
+        setLoginError(message);
       }
     } catch (err) {
       setLoginError('Koneksi gagal. Silakan coba lagi.');
