@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Plus, Edit2, Trash2, Tag, Key, Globe, Eye, EyeOff, Save, X, Search 
+  Plus, Edit2, Trash2, Tag, Key, Globe, Eye, EyeOff, Save, X, Search, RefreshCw, ExternalLink, ShoppingCart, BarChart2, TrendingUp
 } from 'lucide-react';
 import { Product } from '../types';
 
@@ -10,6 +10,7 @@ interface ProductManagerProps {
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (id: string) => void;
   addAuditLog: (action: string, category: 'MEMBERSHIP' | 'PRODUCT' | 'WEBHOOK' | 'AUTHENTICATION' | 'AUTOMATION' | 'BUSINESS', details: string) => void;
+  onSyncLynk?: () => Promise<any>;
 }
 
 export default function ProductManager({
@@ -18,6 +19,7 @@ export default function ProductManager({
   onUpdateProduct,
   onDeleteProduct,
   addAuditLog,
+  onSyncLynk,
 }: ProductManagerProps) {
   const [search, setSearch] = useState('');
   const [isEditing, setIsEditing] = useState<string | null>(null); // product.id or 'NEW'
@@ -32,6 +34,30 @@ export default function ProductManager({
   const [downloadUrl, setDownloadUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [licenseRequired, setLicenseRequired] = useState(false);
+  const [productLink, setProductLink] = useState('');
+  const [checkoutLink, setCheckoutLink] = useState('');
+
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      if (onSyncLynk) {
+        await onSyncLynk();
+        setSyncMessage('Sukses menyinkronkan statistik dari Lynk.id!');
+        setTimeout(() => setSyncMessage(null), 5000);
+      }
+    } catch (err) {
+      console.error(err);
+      setSyncMessage('Gagal sinkronisasi data dari Lynk.id.');
+      setTimeout(() => setSyncMessage(null), 5000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Filter products
   const filteredProducts = products.filter(p => 
@@ -49,6 +75,8 @@ export default function ProductManager({
     setDownloadUrl('');
     setIsActive(true);
     setLicenseRequired(false);
+    setProductLink('');
+    setCheckoutLink('');
   };
 
   const handleStartCreate = () => {
@@ -61,6 +89,8 @@ export default function ProductManager({
     setDownloadUrl('https://rsc.membership-pro.com/download/files');
     setIsActive(true);
     setLicenseRequired(true);
+    setProductLink('https://lynk.id/username/p/product-name');
+    setCheckoutLink('https://lynk.id/username/s/product-name');
   };
 
   const handleStartEdit = (p: Product) => {
@@ -73,6 +103,8 @@ export default function ProductManager({
     setDownloadUrl(p.downloadUrl);
     setIsActive(p.isActive);
     setLicenseRequired(p.licenseRequired);
+    setProductLink(p.productLink || '');
+    setCheckoutLink(p.checkoutLink || '');
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -93,6 +125,11 @@ export default function ProductManager({
         downloadUrl,
         isActive,
         licenseRequired,
+        productLink,
+        checkoutLink,
+        views: 0,
+        clicks: 0,
+        salesCount: 0,
       };
       onAddProduct(newProduct);
       addAuditLog(
@@ -101,6 +138,7 @@ export default function ProductManager({
         `Membuat produk "${name}" dengan SKU "${sku.toUpperCase()}"`
       );
     } else if (isEditing) {
+      const existing = products.find(p => p.id === isEditing);
       const updatedProduct: Product = {
         id: isEditing,
         name,
@@ -110,6 +148,11 @@ export default function ProductManager({
         downloadUrl,
         isActive,
         licenseRequired,
+        productLink,
+        checkoutLink,
+        views: existing ? existing.views : 0,
+        clicks: existing ? existing.clicks : 0,
+        salesCount: existing ? existing.salesCount : 0,
       };
       onUpdateProduct(updatedProduct);
       addAuditLog(
@@ -146,15 +189,35 @@ export default function ProductManager({
           </p>
         </div>
         {!isEditing && (
-          <button
-            id="btn-add-product"
-            onClick={handleStartCreate}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-sans font-medium text-sm transition duration-200"
-          >
-            <Plus className="w-4 h-4" /> Tambah Produk Baru
-          </button>
+          <div className="flex items-center gap-2">
+            {onSyncLynk && (
+              <button
+                id="btn-sync-lynk"
+                onClick={handleSyncClick}
+                disabled={isSyncing}
+                className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 px-4 py-2 rounded-lg font-sans font-medium text-sm transition duration-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 text-blue-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Lynk.id'}
+              </button>
+            )}
+            <button
+              id="btn-add-product"
+              onClick={handleStartCreate}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-sans font-medium text-sm transition duration-200"
+            >
+              <Plus className="w-4 h-4" /> Tambah Produk Baru
+            </button>
+          </div>
         )}
       </div>
+
+      {syncMessage && (
+        <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-blue-400 animate-pulse" />
+          <span>{syncMessage}</span>
+        </div>
+      )}
 
       {/* Editor Form Modal or Block */}
       {isEditing && (
@@ -231,6 +294,34 @@ export default function ProductManager({
                   placeholder="https://gdrive.com/access-keys-..."
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
                   required
+                />
+              </div>
+
+              {/* Product Link */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-blue-400" /> Tautan Halaman Produk (Lynk.id)
+                </label>
+                <input
+                  type="url"
+                  value={productLink}
+                  onChange={e => setProductLink(e.target.value)}
+                  placeholder="Misal: https://lynk.id/username/p/ebook-react-19"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Checkout Link */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-400" /> Tautan Checkout (Lynk.id)
+                </label>
+                <input
+                  type="url"
+                  value={checkoutLink}
+                  onChange={e => setCheckoutLink(e.target.value)}
+                  placeholder="Misal: https://lynk.id/username/s/ebook-react-19"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -324,6 +415,7 @@ export default function ProductManager({
                   <th className="px-6 py-4">Nama & Deskripsi</th>
                   <th className="px-6 py-4">SKU Code</th>
                   <th className="px-6 py-4">Harga</th>
+                  <th className="px-6 py-4 text-center">Statistik Lynk.id</th>
                   <th className="px-6 py-4 text-center">Proteksi Lisensi</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
@@ -338,9 +430,33 @@ export default function ProductManager({
                         <span className="text-xs text-zinc-500 block truncate max-w-sm mt-0.5">
                           {p.description || 'Tidak ada deskripsi.'}
                         </span>
-                        <span className="text-[11px] text-blue-400 font-mono flex items-center gap-1 mt-1">
-                          <Globe className="w-3 h-3" /> {p.downloadUrl}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 font-mono text-[11px]">
+                          <span className="text-blue-400 flex items-center gap-1" title="URL Download File">
+                            <Key className="w-3 h-3" /> {p.downloadUrl}
+                          </span>
+                          {p.productLink && (
+                            <a 
+                              href={p.productLink} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 border-l border-zinc-800 pl-3"
+                              title="Halaman Produk"
+                            >
+                              <Globe className="w-3 h-3" /> Halaman Produk <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                          {p.checkoutLink && (
+                            <a 
+                              href={p.checkoutLink} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 border-l border-zinc-800 pl-3"
+                              title="Tautan Checkout"
+                            >
+                              <ShoppingCart className="w-3 h-3" /> Checkout <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -350,6 +466,22 @@ export default function ProductManager({
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-white">
                       {formatIDR(p.price)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 text-[11px] font-mono justify-center max-w-[150px] mx-auto">
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span className="flex items-center gap-1 text-zinc-500"><Eye className="w-3 h-3 text-blue-400" /> Views:</span>
+                          <span className="font-bold text-white">{p.views || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span className="flex items-center gap-1 text-zinc-500"><ShoppingCart className="w-3 h-3 text-indigo-400" /> Clicks:</span>
+                          <span className="font-bold text-white">{p.clicks || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span className="flex items-center gap-1 text-zinc-500"><TrendingUp className="w-3 h-3 text-emerald-400" /> Sales:</span>
+                          <span className="font-bold text-emerald-400">{p.salesCount || 0}</span>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center">

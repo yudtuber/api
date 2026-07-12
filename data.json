@@ -1,0 +1,42 @@
+{
+  "products": [
+    {
+      "id": "p-1783847631140",
+      "name": "Phitoe Copywriting Machine",
+      "sku": "PHITOE-COPYWRITING-MACHINE",
+      "price": 65000,
+      "description": "",
+      "downloadUrl": "https://sites.google.com/view/phitoe-studio/copywriting-machine",
+      "isActive": true,
+      "licenseRequired": false,
+      "productLink": "http://lynk.id/yudtube/w12oldlmlxd3",
+      "checkoutLink": "http://lynk.id/yudtube/w12oldlmlxd3/checkout",
+      "views": 0,
+      "clicks": 0,
+      "salesCount": 0
+    },
+    {
+      "id": "p-1783847374855",
+      "name": "AI Research Center Pro",
+      "sku": "AI-RESEARCH-CENTER-PRO",
+      "price": 78000,
+      "description": "",
+      "downloadUrl": "https://lynk.id/products/4-07-2026/file_1783143901371_8565764.zip",
+      "isActive": true,
+      "licenseRequired": false,
+      "productLink": "http://lynk.id/yudtube/oymn7evyry1n",
+      "checkoutLink": "http://lynk.id/yudtube/oymn7evyry1n/checkout",
+      "views": 0,
+      "clicks": 0,
+      "salesCount": 0
+    }
+  ],
+  "members": [],
+  "affiliates": [],
+  "coupons": [],
+  "webhookLogs": [],
+  "automationLogs": [],
+  "auditLogs": [],
+  "revenueData": [],
+  "webhookSecret": "whsec_lynk_membership_pro_9912"
+}

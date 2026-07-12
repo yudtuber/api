@@ -28,8 +28,9 @@ export default function DashboardAnalytics({
   const activeMembers = members.filter(m => m.status === 'ACTIVE').length;
   const pendingMembers = members.filter(m => m.status === 'PENDING').length;
   
-  // Simulated revenue computation based on products purchased by active members
-  const totalRevenue = members.reduce((acc, member) => {
+  // Simulated revenue computation based on products purchased by active members + synced sales count
+  const syncedRevenue = products.reduce((acc, p) => acc + ((p.salesCount || 0) * p.price), 0);
+  const totalRevenue = syncedRevenue + members.reduce((acc, member) => {
     return acc + member.purchasedProducts.reduce((pAcc, productId) => {
       const prod = products.find(p => p.id === productId);
       return pAcc + (prod ? prod.price : 0);
@@ -42,7 +43,7 @@ export default function DashboardAnalytics({
   // Product sales counts
   const productSalesMap: { [name: string]: number } = {};
   products.forEach(p => {
-    productSalesMap[p.name] = 0;
+    productSalesMap[p.name] = p.salesCount || 0;
   });
   members.forEach(m => {
     m.purchasedProducts.forEach(pId => {

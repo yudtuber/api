@@ -158,6 +158,20 @@ export default function App() {
     }
   };
 
+  const handleSyncLynk = async () => {
+    try {
+      const res = await authedFetch('/api/sync-lynk', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      await fetchAllData();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
   // --- CRUD DISPATCHERS (MEMBERS) ---
   const handleAddMember = async (newMem: Member) => {
     try {
@@ -660,6 +674,7 @@ export default function App() {
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
             addAuditLog={addAuditLog}
+            onSyncLynk={handleSyncLynk}
           />
         )}
 

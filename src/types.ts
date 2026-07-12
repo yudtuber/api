@@ -7,6 +7,11 @@ export interface Product {
   downloadUrl: string;
   isActive: boolean;
   licenseRequired: boolean;
+  productLink?: string;
+  checkoutLink?: string;
+  views?: number;
+  clicks?: number;
+  salesCount?: number;
 }
 
 export interface Member {
