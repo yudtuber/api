@@ -1,0 +1,6 @@
+{
+  "name": "Lynk Membership Pro",
+  "description": "Dashboard & Sandbox untuk Manajemen Membership, Integrasi Webhook Lynk.id, Otomatisasi, dan Generator Code Starter Kit Next.js + Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
