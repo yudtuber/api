@@ -654,23 +654,38 @@ function addAuditLog(db: DBState, action: string, category: AuditLog['category']
   db.auditLogs.unshift(newAudit);
 }
 
-async function startServer() {
-  const PORT = 3000;
+// Define server port
+const PORT = 3000;
 
-  // Sync data from PostgreSQL if configured (non-blocking background initialization for serverless environments)
-  if (pool) {
-    syncFromPostgres().catch(err => {
-      console.error('[DATABASE] Background PostgreSQL synchronization failed:', err);
-    });
+// Sync data from PostgreSQL if configured (non-blocking background initialization for serverless environments)
+if (pool) {
+  syncFromPostgres().catch(err => {
+    console.error('[DATABASE] Background PostgreSQL synchronization failed:', err);
+  });
+}
+
+// Middleware to capture RAW body for accurate HMAC signature verification
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString();
   }
+}));
+app.use(express.urlencoded({ extended: true }));
 
-  // Middleware to capture RAW body for accurate HMAC signature verification
-  app.use(express.json({
-    verify: (req: any, _res, buf) => {
-      req.rawBody = buf.toString();
-    }
-  }));
-  app.use(express.urlencoded({ extended: true }));
+// Helper function to get clean and sanitized admin password
+function getAdminPassword(): string {
+  const raw = process.env.ADMIN_PASSWORD || 'admin123';
+  let cleaned = raw.trim();
+  // Strip surrounding double quotes if present
+  if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  // Strip surrounding single quotes if present
+  if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned.trim();
+}
 
   // --- ADMIN AUTHENTICATION MIDDLEWARE ---
   app.use((req, res, next) => {
@@ -683,9 +698,9 @@ async function startServer() {
     }
 
     const clientPassword = req.headers['x-admin-password'];
-    const adminPassword = process.env.ADMIN_PASSWORD || 'PsHt19?22!';
+    const adminPassword = getAdminPassword();
 
-    if (clientPassword !== adminPassword) {
+    if (!clientPassword || String(clientPassword).trim() !== adminPassword) {
       return res.status(401).json({ error: 'Unauthorized: Invalid Admin Password' });
     }
     next();
@@ -695,12 +710,32 @@ async function startServer() {
 
   // Verify Admin Password
   app.post('/api/verify-password', (req, res) => {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'PsHt19?22!';
-    if (password === adminPassword) {
+    const { password } = req.body || {};
+    const isCustom = !!process.env.ADMIN_PASSWORD;
+    const adminPassword = getAdminPassword();
+    
+    console.log('[AUTH] Verification attempt:', {
+      hasBody: !!req.body,
+      hasPassword: !!password,
+      passwordLength: password ? password.length : 0,
+      expectedLength: adminPassword.length,
+      isCustomConfigured: isCustom
+    });
+
+    if (password && password.trim() === adminPassword) {
       res.json({ valid: true });
     } else {
-      res.status(401).json({ error: 'Password salah' });
+      res.status(401).json({ 
+        error: 'Password salah',
+        isCustomConfigured: isCustom,
+        diagnostics: {
+          hasBody: !!req.body,
+          hasPassword: !!password,
+          receivedLength: password ? password.length : 0,
+          expectedLength: adminPassword.length,
+          envIsCustom: isCustom
+        }
+      });
     }
   });
 
@@ -1184,11 +1219,14 @@ async function startServer() {
 
   // --- VITE DEV / PRODUCTION HANDLERS ---
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
+    createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
+    }).then(vite => {
+      app.use(vite.middlewares);
+    }).catch(err => {
+      console.error('[VITE] Failed to create Vite development server:', err);
     });
-    app.use(vite.middlewares);
   } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -1202,16 +1240,3 @@ async function startServer() {
       console.log(`[SERVER] Lynk Membership Pro server listening on port ${PORT}`);
     });
   }
-}
-
-// Only run standalone startServer if NOT running inside Vercel serverless runtime
-if (!process.env.VERCEL) {
-  startServer().catch(err => {
-    console.error('[FATAL SERVER ERROR]', err);
-  });
-} else {
-  // On Vercel, we need to ensure startServer still runs to initialize pg sync and define routes
-  startServer().catch(err => {
-    console.error('[VERCEL INITIALIZATION ERROR]', err);
-  });
-}
