@@ -657,8 +657,12 @@ function addAuditLog(db: DBState, action: string, category: AuditLog['category']
 async function startServer() {
   const PORT = 3000;
 
-  // Sync data from PostgreSQL if configured
-  await syncFromPostgres();
+  // Sync data from PostgreSQL if configured (non-blocking background initialization for serverless environments)
+  if (pool) {
+    syncFromPostgres().catch(err => {
+      console.error('[DATABASE] Background PostgreSQL synchronization failed:', err);
+    });
+  }
 
   // Middleware to capture RAW body for accurate HMAC signature verification
   app.use(express.json({
