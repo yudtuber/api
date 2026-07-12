@@ -19,6 +19,8 @@ if (process.env.DATABASE_URL) {
   console.log('Production PostgreSQL Database connection pool initialized successfully.');
 }
 
+export const app = express();
+
 // Interface declarations
 interface Product {
   id: string;
@@ -299,32 +301,46 @@ const DEFAULT_STATE: DBState = {
   webhookSecret: 'whsec_lynk_membership_pro_9912'
 };
 
+// Global cache for database state to handle read-only environments gracefully (like serverless functions)
+let g_dbState: DBState | null = null;
+
 // Read database file helper
 function readDb(): DBState {
+  if (g_dbState) {
+    return g_dbState;
+  }
   if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Could not write initial DB file (filesystem might be read-only):', e);
+    }
+    g_dbState = DEFAULT_STATE;
     return DEFAULT_STATE;
   }
   try {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
+    g_dbState = JSON.parse(content);
+    return g_dbState;
   } catch (err) {
     console.error('Error reading DB, using default', err);
+    g_dbState = DEFAULT_STATE;
     return DEFAULT_STATE;
   }
 }
 
 // Write database file helper
 function writeDb(data: DBState) {
+  g_dbState = data;
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    if (pool) {
-      syncToPostgres(data).catch(err => {
-        console.error('Background synchronization to PostgreSQL failed:', err);
-      });
-    }
   } catch (err) {
-    console.error('Error writing to DB', err);
+    console.warn('Error writing to DB (filesystem might be read-only):', err);
+  }
+  if (pool) {
+    syncToPostgres(data).catch(err => {
+      console.error('Background synchronization to PostgreSQL failed:', err);
+    });
   }
 }
 
@@ -544,7 +560,12 @@ async function syncFromPostgres() {
         webhookSecret: settingsRes.rows.find((r: any) => r.key === 'webhookSecret')?.value || currentFileState.webhookSecret
       };
 
-      fs.writeFileSync(DB_FILE, JSON.stringify(loadedState, null, 2), 'utf-8');
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(loadedState, null, 2), 'utf-8');
+      } catch (e) {
+        console.warn('Could not write synced database file (filesystem might be read-only):', e);
+      }
+      g_dbState = loadedState;
       console.log('Loaded and synchronized local filesystem state from PostgreSQL.');
     } finally {
       client.release();
@@ -634,7 +655,6 @@ function addAuditLog(db: DBState, action: string, category: AuditLog['category']
 }
 
 async function startServer() {
-  const app = express();
   const PORT = 3000;
 
   // Sync data from PostgreSQL if configured
@@ -648,7 +668,37 @@ async function startServer() {
   }));
   app.use(express.urlencoded({ extended: true }));
 
+  // --- ADMIN AUTHENTICATION MIDDLEWARE ---
+  app.use((req, res, next) => {
+    // Exclude public webhook endpoint, static files, and password verification
+    if (req.path === '/api/webhook/lynk' || !req.path.startsWith('/api/')) {
+      return next();
+    }
+    if (req.path === '/api/verify-password') {
+      return next();
+    }
+
+    const clientPassword = req.headers['x-admin-password'];
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (clientPassword !== adminPassword) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid Admin Password' });
+    }
+    next();
+  });
+
   // --- API ROUTE ENDPOINTS ---
+
+  // Verify Admin Password
+  app.post('/api/verify-password', (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    if (password === adminPassword) {
+      res.json({ valid: true });
+    } else {
+      res.status(401).json({ error: 'Password salah' });
+    }
+  });
 
   // Health check
   app.get('/api/health', (_req, res) => {
@@ -1135,7 +1185,7 @@ async function startServer() {
       appType: 'spa'
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
@@ -1143,11 +1193,21 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[SERVER] Lynk Membership Pro server listening on port ${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[SERVER] Lynk Membership Pro server listening on port ${PORT}`);
+    });
+  }
 }
 
-startServer().catch(err => {
-  console.error('[FATAL SERVER ERROR]', err);
-});
+// Only run standalone startServer if NOT running inside Vercel serverless runtime
+if (!process.env.VERCEL) {
+  startServer().catch(err => {
+    console.error('[FATAL SERVER ERROR]', err);
+  });
+} else {
+  // On Vercel, we need to ensure startServer still runs to initialize pg sync and define routes
+  startServer().catch(err => {
+    console.error('[VERCEL INITIALIZATION ERROR]', err);
+  });
+}

@@ -326,7 +326,7 @@ export default function BusinessTools({
                       <th className="px-6 py-3">Nama Influencer</th>
                       <th className="px-6 py-3">Kode Unik</th>
                       <th className="px-6 py-3">Rate</th>
-                      <th className="px-6 py-3 text-center">Simulasi Klik</th>
+                      <th className="px-6 py-3 text-center">Statistik Klik / Traffic</th>
                       <th className="px-6 py-3 text-right">Konversi / Penghasilan</th>
                     </tr>
                   </thead>
@@ -352,7 +352,7 @@ export default function BusinessTools({
                               <button
                                 onClick={() => onTriggerAffiliateClick(aff.id)}
                                 className="bg-zinc-950 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 p-1 rounded-md transition"
-                                title="Simulasikan Klik Referral"
+                                title="Catat Klik Referral Tambahan"
                               >
                                 <MousePointer className="w-3.5 h-3.5 text-blue-400" />
                               </button>
@@ -637,7 +637,7 @@ export default function BusinessTools({
                 onClick={handleVerifyLicense}
                 className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-1.5 rounded-lg text-xs font-semibold transition font-sans"
               >
-                Check API License (Simulasi)
+                Verifikasi Lisensi Klien (Akses API)
               </button>
 
               {verifiedLicense && (

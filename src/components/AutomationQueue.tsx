@@ -185,7 +185,7 @@ export default function AutomationQueue({
             {/* Template Parser Render Previews */}
             <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-5 space-y-4">
               <span className="text-[10px] uppercase font-mono font-bold text-zinc-500 block pb-2 border-b border-zinc-900">
-                👁️ Live Rendering Preview (Data Simulasi)
+                👁️ Live Rendering Preview (Pratinjau Nyata)
               </span>
 
               {/* Rendered Email */}
@@ -274,7 +274,7 @@ export default function AutomationQueue({
                 <div className="text-center py-20 font-sans">
                   <Bell className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
                   <p className="text-zinc-400">Belum ada antrean notifikasi terkirim.</p>
-                  <p className="text-xs text-zinc-600 mt-1">Lakukan transaksi sukses di Webhook Sandbox untuk menembakkan notifikasi otomatis.</p>
+                  <p className="text-xs text-zinc-600 mt-1">Sistem siap mengirimkan WhatsApp & Email secara instan saat transaksi baru masuk dari Lynk.id.</p>
                 </div>
               )}
             </div>
@@ -282,7 +282,7 @@ export default function AutomationQueue({
             {automationLogs.length > 0 && (
               <div className="p-3 bg-zinc-950 text-center border-t border-zinc-800">
                 <span className="text-[10px] font-mono text-zinc-500">
-                  Worker status: <strong className="text-emerald-400 font-semibold animate-pulse">● IDLE (listening)</strong> — BullMQ Node.js simulator running
+                  Worker Status: <strong className="text-emerald-400 font-semibold animate-pulse">● AKTIF (Siaga)</strong> — Pengendali Antrean Latar Belakang Berjalan Stabil
                 </span>
               </div>
             )}

@@ -528,7 +528,7 @@ export default function MemberManager({
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
             <p className="text-zinc-400 font-sans">Belum ada data member yang sesuai.</p>
-            <p className="text-xs text-zinc-600 mt-1">Gunakan tombol "Tambah Member" atau simulasikan pembelian di Webhook Sandbox!</p>
+            <p className="text-xs text-zinc-600 mt-1">Gunakan tombol "Tambah Member" atau terima transaksi masuk dari Webhook Lynk.id!</p>
           </div>
         )}
       </div>

@@ -17,6 +17,30 @@ import DeveloperStarterKit from './components/DeveloperStarterKit';
 export default function App() {
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'PRODUCTS' | 'MEMBERS' | 'SANDBOX' | 'AUTOMATIONS' | 'BUSINESS' | 'STARTER_KIT'>('DASHBOARD');
 
+  // --- ADMIN SECURITY GATE STATES ---
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminPassword, setAdminPassword] = useState<string>(() => localStorage.getItem('admin_password') || '');
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
+  // Authenticated custom fetch wrapper
+  const authedFetch = async (url: string, options: RequestInit = {}) => {
+    const headers = {
+      ...(options.headers || {}),
+      'Content-Type': 'application/json',
+      'x-admin-password': adminPassword
+    };
+    const res = await fetch(url, { ...options, headers });
+    
+    if (res.status === 401 && url !== '/api/verify-password') {
+      setIsAuthenticated(false);
+      localStorage.removeItem('admin_password');
+    }
+    return res;
+  };
+
   // --- FULL-STACK SERVER INTEGRATION ENGINE ---
   const [products, setProducts] = useState<Product[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -35,15 +59,15 @@ export default function App() {
         prodsRes, membersRes, webhooksRes, couponsRes, affiliatesRes, 
         auditsRes, automationsRes, secretRes, revenueRes
       ] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/members'),
-        fetch('/api/webhook-logs'),
-        fetch('/api/coupons'),
-        fetch('/api/affiliates'),
-        fetch('/api/audit-logs'),
-        fetch('/api/automation-logs'),
-        fetch('/api/webhook-secret'),
-        fetch('/api/revenue-data')
+        authedFetch('/api/products'),
+        authedFetch('/api/members'),
+        authedFetch('/api/webhook-logs'),
+        authedFetch('/api/coupons'),
+        authedFetch('/api/affiliates'),
+        authedFetch('/api/audit-logs'),
+        authedFetch('/api/automation-logs'),
+        authedFetch('/api/webhook-secret'),
+        authedFetch('/api/revenue-data')
       ]);
 
       if (prodsRes.ok) setProducts(await prodsRes.json());
@@ -63,17 +87,43 @@ export default function App() {
     }
   };
 
+  // Validate on initial load or if password changes
+  useEffect(() => {
+    if (adminPassword) {
+      fetch('/api/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      })
+      .then(async (res) => {
+        if (res.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          localStorage.removeItem('admin_password');
+          setAdminPassword('');
+        }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      });
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, [adminPassword]);
+
   // Poll server state every 4 seconds so real external webhooks refresh the UI instantly
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchAllData();
     const interval = setInterval(fetchAllData, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated, adminPassword]);
 
   // --- CRUD DISPATCHERS (PRODUCTS) ---
   const handleAddProduct = async (newProd: Product) => {
     try {
-      await fetch('/api/products', {
+      await authedFetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProd)
@@ -86,7 +136,7 @@ export default function App() {
 
   const handleUpdateProduct = async (updatedProd: Product) => {
     try {
-      await fetch(`/api/products/${updatedProd.id}`, {
+      await authedFetch(`/api/products/${updatedProd.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProd)
@@ -99,7 +149,7 @@ export default function App() {
 
   const handleDeleteProduct = async (id: string) => {
     try {
-      await fetch(`/api/products/${id}`, {
+      await authedFetch(`/api/products/${id}`, {
         method: 'DELETE'
       });
       await fetchAllData();
@@ -111,7 +161,7 @@ export default function App() {
   // --- CRUD DISPATCHERS (MEMBERS) ---
   const handleAddMember = async (newMem: Member) => {
     try {
-      await fetch('/api/members', {
+      await authedFetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newMem)
@@ -124,7 +174,7 @@ export default function App() {
 
   const handleUpdateMember = async (updatedMem: Member) => {
     try {
-      await fetch(`/api/members/${updatedMem.id}`, {
+      await authedFetch(`/api/members/${updatedMem.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedMem)
@@ -137,7 +187,7 @@ export default function App() {
 
   const handleDeleteMember = async (id: string) => {
     try {
-      await fetch(`/api/members/${id}`, {
+      await authedFetch(`/api/members/${id}`, {
         method: 'DELETE'
       });
       await fetchAllData();
@@ -149,7 +199,7 @@ export default function App() {
   // --- BUSINESS DISPATCHERS (COUPONS / AFFILIATES) ---
   const handleAddCoupon = async (newCop: Coupon) => {
     try {
-      await fetch('/api/coupons', {
+      await authedFetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCop)
@@ -162,7 +212,7 @@ export default function App() {
 
   const handleDeleteCoupon = async (id: string) => {
     try {
-      await fetch(`/api/coupons/${id}`, {
+      await authedFetch(`/api/coupons/${id}`, {
         method: 'DELETE'
       });
       await fetchAllData();
@@ -173,7 +223,7 @@ export default function App() {
 
   const handleAddAffiliate = async (newAff: Affiliate) => {
     try {
-      await fetch('/api/affiliates', {
+      await authedFetch('/api/affiliates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAff)
@@ -186,7 +236,7 @@ export default function App() {
 
   const handleTriggerAffiliateClick = async (id: string) => {
     try {
-      await fetch(`/api/affiliates/${id}/click`, {
+      await authedFetch(`/api/affiliates/${id}/click`, {
         method: 'POST'
       });
       await fetchAllData();
@@ -197,7 +247,7 @@ export default function App() {
 
   const handleClearWebhookLogs = async () => {
     try {
-      await fetch('/api/webhook-logs', {
+      await authedFetch('/api/webhook-logs', {
         method: 'DELETE'
       });
       await fetchAllData();
@@ -208,7 +258,7 @@ export default function App() {
 
   const handleClearAutomationLogs = async () => {
     try {
-      await fetch('/api/automation-logs', {
+      await authedFetch('/api/automation-logs', {
         method: 'DELETE'
       });
       await fetchAllData();
@@ -224,7 +274,7 @@ export default function App() {
     details: string
   ) => {
     try {
-      await fetch('/api/audit-logs', {
+      await authedFetch('/api/audit-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, category, details })
@@ -279,7 +329,7 @@ export default function App() {
   // --- AUTOMATION RETRY ENGINE ---
   const handleTriggerRetry = async (logId: string) => {
     try {
-      await fetch('/api/automation-logs/retry', {
+      await authedFetch('/api/automation-logs/retry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: logId })
@@ -292,7 +342,7 @@ export default function App() {
 
   const handleTriggerRetryAll = async () => {
     try {
-      await fetch('/api/automation-logs/retry-all', {
+      await authedFetch('/api/automation-logs/retry-all', {
         method: 'POST'
       });
       await fetchAllData();
@@ -300,6 +350,112 @@ export default function App() {
       console.error(err);
     }
   };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordInput.trim()) return;
+    setIsVerifying(true);
+    setLoginError('');
+
+    try {
+      const res = await fetch('/api/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      });
+
+      if (res.ok) {
+        localStorage.setItem('admin_password', passwordInput);
+        setAdminPassword(passwordInput);
+        setIsAuthenticated(true);
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Password salah' }));
+        setLoginError(errData.error || 'Password yang Anda masukkan salah.');
+      }
+    } catch (err) {
+      setLoginError('Koneksi gagal. Silakan coba lagi.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 font-sans antialiased text-zinc-300">
+        <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl space-y-6 overflow-hidden">
+          {/* Top visual accent decoration */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600"></div>
+          
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-2">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h1 className="text-xl font-extrabold tracking-tight text-white">
+              Akses Terproteksi
+            </h1>
+            <p className="text-xs text-zinc-400 max-w-xs mx-auto leading-relaxed">
+              Dashboard Keanggotaan Lynk.id Anda dilindungi untuk mencegah akses pihak tidak bertanggung jawab.
+            </p>
+          </div>
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
+                Kata Sandi Administrator
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Masukkan password admin"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition font-mono pr-10 shadow-inner"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition text-xs"
+                >
+                  {showPassword ? 'Sembunyikan' : 'Lihat'}
+                </button>
+              </div>
+              {loginError && (
+                <p className="text-xs text-red-400 mt-1.5 font-semibold flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                  {loginError}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-semibold text-xs py-3 rounded-xl transition shadow-md hover:shadow-indigo-500/10 flex items-center justify-center gap-2"
+            >
+              {isVerifying ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                  <span>Memverifikasi...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Buka Dashboard</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="border-t border-zinc-800/80 pt-4 text-center">
+            <p className="text-[10px] text-zinc-500 leading-normal">
+              Ubah atau atur <code className="text-indigo-400 font-mono">ADMIN_PASSWORD</code> pada environment <code className="text-zinc-400">.env</code> untuk kustomisasi kata sandi. (Bawaan: <code className="text-zinc-400">admin123</code>)
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans flex flex-col md:flex-row antialiased">
@@ -383,10 +539,10 @@ export default function App() {
             >
               <div className="flex items-center gap-2.5">
                 <Terminal className="w-4 h-4 text-zinc-400" />
-                <span>Sandbox Webhook</span>
+                <span>Integrasi Webhook</span>
               </div>
-              <span className="bg-blue-500/10 text-blue-400 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
-                TEST
+              <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                AKTIF
               </span>
             </button>
 
@@ -444,14 +600,28 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Console connection info footer */}
-        <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/20 font-mono text-[11px] text-zinc-500">
-          <div className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-            <span className="font-bold text-[10px]">LOCAL ENGINE ONLINE</span>
+        {/* Production connection status footer */}
+        <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/20 font-mono text-[11px] text-zinc-500 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+              <span className="font-bold text-[10px]">SISTEM PRODUKSI ONLINE</span>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('admin_password');
+                setAdminPassword('');
+                setIsAuthenticated(false);
+              }}
+              className="text-[10px] text-red-400 hover:text-red-300 transition underline cursor-pointer font-sans font-semibold"
+            >
+              Keluar
+            </button>
           </div>
-          <p className="mt-1">SYS_TIME: 2026-07-11</p>
-          <p className="text-[10px] text-zinc-600 mt-0.5">DB_PORT: 5432 (Supabase)</p>
+          <div>
+            <p>SERVER: Vercel Cloud</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">DATABASE: Supabase Cloud Active</p>
+          </div>
         </div>
       </aside>
 
@@ -501,7 +671,7 @@ export default function App() {
             webhookSecret={webhookSecret}
             onChangeWebhookSecret={async (secret) => {
               try {
-                await fetch('/api/webhook-secret', {
+                await authedFetch('/api/webhook-secret', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ secret })

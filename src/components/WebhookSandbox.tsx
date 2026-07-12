@@ -174,35 +174,116 @@ export default function WebhookSandbox({
     }
   };
 
+  const currentPreviewUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/webhook/lynk` : '';
+  const productionVercelUrl = 'https://api-three-gold.vercel.app/api/webhook/lynk';
+
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white font-sans">
-            Webhook Sandbox & Simulator
+          <h2 className="text-xl font-bold tracking-tight text-white font-sans flex items-center gap-2">
+            <Server className="w-5 h-5 text-indigo-400" />
+            Integrasi Webhook Lynk.id (Sistem Produksi)
           </h2>
           <p className="text-sm text-zinc-400">
-            Uji respons sistem membership terhadap payload transaksi Lynk.id secara real-time.
+            Hubungkan akun Lynk.id Anda secara langsung dengan sistem membership otomatis ini.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-mono text-zinc-500">SECRET KEY:</label>
+          <label className="text-xs font-mono text-zinc-500 font-bold uppercase tracking-wider">SECRET KEY:</label>
           <input
             type="text"
             value={webhookSecret}
             onChange={e => onChangeWebhookSecret(e.target.value)}
             placeholder="whsec_secret_key"
-            className="bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs px-3 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-44"
+            className="bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs px-3 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-48 shadow-inner"
           />
+        </div>
+      </div>
+
+      {/* Real-time Webhook Setup Guide Panel */}
+      <div className="bg-gradient-to-br from-indigo-950/40 to-zinc-900 border border-indigo-500/20 rounded-xl p-5 shadow-lg space-y-4">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-zinc-800">
+          <Key className="w-5 h-5 text-indigo-400" />
+          <div>
+            <h3 className="text-sm font-bold text-white font-sans">
+              Panduan Menghubungkan ke Akun Lynk.id Real Anda
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">Ikuti langkah berikut untuk mengotomatiskan seluruh transaksi pembelian Anda secara real-time:</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3 text-xs text-zinc-400">
+            <div className="flex gap-2.5">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-bold text-[10px] shrink-0">1</span>
+              <p>
+                Buka akun <strong className="text-zinc-200">Lynk.id</strong> Anda, lalu masuk ke bagian <strong className="text-zinc-200">Developer / Webhook Dashboard</strong>.
+              </p>
+            </div>
+            <div className="flex gap-2.5">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-bold text-[10px] shrink-0">2</span>
+              <p>
+                Salin salah satu URL Webhook di samping kanan dan tempelkan ke kolom <strong className="text-zinc-200">Webhook URL</strong> di dashboard Lynk.id.
+              </p>
+            </div>
+            <div className="flex gap-2.5">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-bold text-[10px] shrink-0">3</span>
+              <p>
+                Masukkan <strong className="text-zinc-200">Secret Key</strong> di atas sebagai secret kunci Anda untuk memvalidasi tanda tangan pengiriman (<code className="text-amber-400">x-lynk-signature</code>) secara aman.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 bg-zinc-950/80 p-4 rounded-xl border border-zinc-800 flex flex-col justify-center">
+            {/* Vercel Production Link */}
+            <div>
+              <span className="text-[10px] font-bold text-zinc-500 font-mono tracking-wider block uppercase mb-1">
+                🔗 URL Webhook Vercel (Produksi Anda)
+              </span>
+              <div className="flex items-center gap-2 bg-zinc-900 border border-indigo-500/30 p-2 rounded-lg justify-between shadow-sm">
+                <code className="text-xs text-emerald-400 font-mono select-all truncate">
+                  {productionVercelUrl}
+                </code>
+                <button
+                  onClick={() => handleCopy(productionVercelUrl, 'vercel-url')}
+                  className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white p-1.5 rounded transition text-[10px] flex items-center gap-1 font-sans shrink-0"
+                >
+                  {isCopied === 'vercel-url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Salin</span>
+                </button>
+              </div>
+            </div>
+
+            {/* AI Studio Sandbox Link */}
+            <div>
+              <span className="text-[10px] font-bold text-zinc-500 font-mono tracking-wider block uppercase mb-1">
+                🔗 URL Webhook Sandbox (Aplikasi Ini)
+              </span>
+              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 p-2 rounded-lg justify-between">
+                <code className="text-xs text-zinc-300 font-mono select-all truncate">
+                  {currentPreviewUrl}
+                </code>
+                <button
+                  onClick={() => handleCopy(currentPreviewUrl, 'sandbox-url')}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white p-1.5 rounded transition text-[10px] flex items-center gap-1 font-sans shrink-0"
+                >
+                  {isCopied === 'sandbox-url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>Salin</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Webhook Parameters Form */}
-        <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+        <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4 shadow-md">
           <div className="flex items-center gap-2 pb-3 border-b border-zinc-800">
-            <Server className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-semibold text-white font-sans">Konfigurasi Pengiriman</span>
+            <Play className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-semibold text-white font-sans">Alat Pengujian Payload Lokal</span>
           </div>
 
           <div className="space-y-3.5">
@@ -331,8 +412,8 @@ export default function WebhookSandbox({
                   className="rounded bg-zinc-900 border-zinc-800 text-red-500 focus:ring-0 mt-0.5 w-3.5 h-3.5"
                 />
                 <div>
-                  <span className="text-xs font-bold text-red-400 block">Simulasikan Corrupt Signature</span>
-                  <span className="text-[10px] text-zinc-500 block leading-normal mt-0.5">Mengubah signature agar tidak valid untuk menguji proteksi keamanan (401 Unauthorized)</span>
+                  <span className="text-xs font-bold text-red-400 block">Uji Signature Tidak Valid</span>
+                  <span className="text-[10px] text-zinc-500 block leading-normal mt-0.5">Mengubah signature secara paksa untuk menguji proteksi otentikasi (401 Unauthorized)</span>
                 </div>
               </label>
             </div>
@@ -349,7 +430,7 @@ export default function WebhookSandbox({
               }`}
             >
               <Play className="w-4 h-4 fill-current" /> 
-              {isGenerating ? 'Memproses Webhook...' : 'Kirim Webhook Simulasi'}
+              {isGenerating ? 'Memproses Payload...' : 'Uji Kirim Payload Webhook'}
             </button>
             {products.length === 0 && (
               <p className="text-[10px] text-amber-500/80 text-center font-sans mt-1">
@@ -405,7 +486,7 @@ export default function WebhookSandbox({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-zinc-400 font-sans uppercase tracking-wider flex items-center gap-1.5">
-                    <Terminal className="w-3.5 h-3.5 text-blue-400" /> Output Log Server (Simulasi)
+                    <Terminal className="w-3.5 h-3.5 text-blue-400" /> Output Respon Server Backend
                   </span>
                   <span className="text-[10px] font-mono text-zinc-600">POST /api/webhook/lynk</span>
                 </div>
@@ -445,8 +526,8 @@ export default function WebhookSandbox({
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-600 font-sans">
                     <Server className="w-10 h-10 text-zinc-800 mb-2" />
-                    <p className="text-xs">Menunggu pengiriman webhook...</p>
-                    <p className="text-[10px] text-zinc-700 max-w-xs mt-1">Tekan tombol "Kirim Webhook" untuk melihat simulasi penanganan server, otentikasi signature, dan hasil response.</p>
+                    <p className="text-xs">Menunggu pengiriman payload uji coba...</p>
+                    <p className="text-[10px] text-zinc-700 max-w-xs mt-1">Kirim payload di sebelah kiri untuk memverifikasi alur otomatisasi, tanda tangan signature, dan respon server secara lokal.</p>
                   </div>
                 )}
               </div>
@@ -454,7 +535,7 @@ export default function WebhookSandbox({
               {simulatedResponse && (
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono border-t border-zinc-850 pt-2.5 mt-2.5">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Proses aktivasi sukses disimulasikan.</span>
+                  <span>Aktivasi membership dan lisensi sukses diproses.</span>
                 </div>
               )}
             </div>
@@ -486,15 +567,15 @@ export default function WebhookSandbox({
         <div className="p-4 border-b border-zinc-800 bg-zinc-950/40 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-white font-sans">
-              Log Webhook Historis (Simulated Audit)
+              Log & Audit Webhook Produksi Real-Time
             </h3>
-            <p className="text-xs text-zinc-500 font-sans mt-0.5">Pantau history webhook masuk, audit signature, dan kegagalan provisioning.</p>
+            <p className="text-xs text-zinc-500 font-sans mt-0.5">Pantau data webhook masuk asli dari Lynk.id, verifikasi signature, dan history aktivasi.</p>
           </div>
           <button
             onClick={onClearLogs}
             className="text-xs text-zinc-500 hover:text-zinc-300 font-mono bg-zinc-950 px-2.5 py-1.5 rounded border border-zinc-850 transition"
           >
-            Clear History
+            Hapus Riwayat Log
           </button>
         </div>
 
@@ -599,9 +680,9 @@ export default function WebhookSandbox({
           </div>
         ) : (
           <div className="text-center py-10 font-sans">
-            <HelpCircle className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-            <p className="text-zinc-400">Belum ada histori webhook masuk yang disimulasikan.</p>
-            <p className="text-xs text-zinc-600 mt-1">Konfigurasikan form di atas lalu klik "Kirim Webhook Simulasi" untuk memulai trace log.</p>
+            <HelpCircle className="w-12 h-12 text-zinc-800 mx-auto mb-3 animate-pulse" />
+            <p className="text-zinc-400">Belum ada riwayat transaksi webhook yang terdeteksi.</p>
+            <p className="text-xs text-zinc-600 mt-1">Sistem siap menerima data transaksi real dari Lynk.id, atau gunakan panel pengujian payload di atas.</p>
           </div>
         )}
       </div>

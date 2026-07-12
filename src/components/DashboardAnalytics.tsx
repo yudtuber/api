@@ -79,13 +79,13 @@ export default function DashboardAnalytics({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 z-10 relative">
           <div>
             <span className="bg-blue-500/10 text-blue-400 text-xs font-mono font-medium px-2.5 py-1 rounded-full border border-blue-500/20">
-              ⚡ LIVE - SIMULATOR CONNECTED
+              ⚡ STATUS SISTEM - ONLINE
             </span>
             <h1 className="text-2xl font-bold tracking-tight text-white mt-2 font-sans">
               Lynk Membership Pro
             </h1>
             <p className="text-zinc-400 text-sm mt-1 max-w-xl">
-              Platform otomatisasi membership & proteksi produk digital yang siap dihubungkan dengan Webhook Lynk.id. Gunakan Sandbox untuk menguji integrasi.
+              Platform otomatisasi membership & proteksi produk digital yang terintegrasi penuh dengan akun Lynk.id Anda secara langsung.
             </p>
           </div>
           <div className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 p-3 rounded-lg font-mono text-xs text-zinc-300">
@@ -181,7 +181,7 @@ export default function DashboardAnalytics({
           <div className="flex items-center justify-between mb-4">
             <div>
               <h4 className="text-white font-semibold font-sans">Grafik Pendapatan & Registrasi</h4>
-              <p className="text-xs text-zinc-500">Histori harian (Simulasi webhook real-time)</p>
+              <p className="text-xs text-zinc-500">Histori harian (Webhook Real-Time)</p>
             </div>
             <div className="flex items-center gap-4 text-xs font-mono">
               <div className="flex items-center gap-1.5">
@@ -245,7 +245,7 @@ export default function DashboardAnalytics({
               <div className="text-center py-8">
                 <ShoppingBag className="w-10 h-10 text-zinc-700 mx-auto mb-2" />
                 <p className="text-sm text-zinc-500 font-sans">Belum ada data penjualan.</p>
-                <p className="text-xs text-zinc-600 mt-1">Simulasikan transaksi sukses di Sandbox Webhook!</p>
+                <p className="text-xs text-zinc-600 mt-1">Konfigurasikan webhook Anda di bagian Integrasi Webhook.</p>
               </div>
             )}
           </div>
