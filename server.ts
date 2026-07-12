@@ -683,7 +683,7 @@ async function startServer() {
     }
 
     const clientPassword = req.headers['x-admin-password'];
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'PsHt19?22!';
 
     if (clientPassword !== adminPassword) {
       return res.status(401).json({ error: 'Unauthorized: Invalid Admin Password' });
@@ -696,7 +696,7 @@ async function startServer() {
   // Verify Admin Password
   app.post('/api/verify-password', (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'PsHt19?22!';
     if (password === adminPassword) {
       res.json({ valid: true });
     } else {
